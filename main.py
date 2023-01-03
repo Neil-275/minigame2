@@ -7,11 +7,25 @@ import math
 pygame.init()
 maxW,maxH=900,500   
 screen= pygame.display.set_mode((maxW,maxH))
+pygame.display.set_caption("Training Lee")
+pygame.display.set_icon(pygame.image.load('img/fist.png'))
 
+#SOUND
+pygame.mixer.music.load('sound/cool.mp3')
+pygame.mixer.music.play(-1)
+pygame.mixer.music.set_volume(0.5)
+parrySound = pygame.mixer.Sound('sound/swosh-01.flac')
+hitted = pygame.mixer.Sound('sound/tribe_f.wav')
+#FONT
+fontEnd = pygame.font.Font('font/Audiowide-Regular.ttf',104)
+fontscore=pygame.font.Font('font/Audiowide-Regular.ttf',20)
+# fontI= pygame.font.Font('font/static/Nunito-Italic.ttf',24)
 
+#LINE
+gameover=fontEnd.render("Wasted",True,(200,10,10))
+score=0
 
-
-
+#Function
 def draw(player_car,x,y):
     screen.blit(player_car,(x, y))
 
@@ -21,31 +35,37 @@ def distance(a,b,x,y):
 def resize(img,x,y):
     return pygame.transform.scale(img,(x,y))
 
-bg=pygame.image.load("img/bg.png")
-bg=pygame.transform.scale(bg,(maxW,maxH))
+bg=pygame.image.load("img/bg2.png")
+bg=pygame.transform.scale(bg,(bg.get_width(),maxH))
+bgX=-300
+bgY=0
 heart=resize(pygame.image.load("img/heart.png"),32,32)
 wood=pygame.image.load("img/wood.png")
 wood=resize(wood,160,80)
+shadow=pygame.image.load("img/shadow.png")
+shadow=resize(shadow,50,25)
 #1 Right
 #0 Left
 
 spriteEnemy=[]
-spriteEnemy.append(resize(pygame.image.load("img/shuriken.png"),32,32))
+for i in range(3):
+    img=f"img/shuriken_{i}.png"
+    spriteEnemy.append(resize(pygame.image.load(f"img/shuriken_{i}.png"),32,32))
 di=[-1,1]
 def newEnemy():
-    a=ENEMY(random.choice([-30,maxW]),random.choice([0,1]),random.uniform(0.5,0.7))
+    a=ENEMY(random.choice([-30,maxW]),random.choice([1,0]),random.uniform(3,5))
     return a
 class ENEMY:
     def __init__(self,x,idi,velocity):
         self.curSprite=0
         self.x=x
-        self.y=fighter.y+40
+        self.y=fighter.y+random.uniform(10,50)
         self.idi=idi
         self.velocityX=velocity
         self.velocityY=0
         self.kicked=0
     def run(self):
-        self.curSprite+=0.4
+        self.curSprite+=1
         self.x+= self.velocityX*di[self.idi]
         self.y+= self.velocityY
         draw(spriteEnemy[int(self.curSprite)%len(spriteEnemy)],self.x,self.y)
@@ -53,7 +73,7 @@ class ENEMY:
         pass
         self.idi=1-self.idi
         self.velocityY=random.uniform(-1,1)
-        self.velocityX=0.6
+        self.velocityX=6
 
 class FIGHTER:
     def __init__(self):
@@ -76,22 +96,24 @@ class FIGHTER:
         self.death=[]
         self.curDeath=0
     def recover(self): #Chay khi active=0
-        if self.curAttRange<self.attRange:
-            self.curAttRange +=0.1   
-        self.curIdleSprite+=0.01
+        if self.curAttRange<self.attRange :
+            self.curAttRange +=2.3   
+        self.curIdleSprite+=0.1
         if self.active==0:
+            draw(shadow,self.x*1.01,self.y+self.height*0.85)
             draw(self.idleSprite[self.idi][int(self.curIdleSprite)%len(self.idleSprite[di[self.idi]])],self.x,self.y)
+            
         #Left
         draw(resize(self.rangeImg,self.curAttRange,10),self.x-self.curAttRange,self.y+self.height*1.05)
         #Right
-        draw(resize(self.rangeImg,self.curAttRange,10),self.x+self.width-20,self.y+self.height*1.05)
+        draw(resize(self.rangeImg,self.curAttRange,10),self.x+self.width*0.8,self.y+self.height*1.05)
     def setAttack(self,idi,x):
+        parrySound.play()
         self.curAttSprite=random.choice([0,5,10,15])
         self.idi=idi
         self.active=1
-        if abs(self.x-x)<=self.curAttRange:
+        if abs(self.x-x)<=self.curAttRange*1.2:
             self.targetX=x 
-            
         else :
             self.targetX=self.x
         self.curAttRange=0
@@ -99,24 +121,38 @@ class FIGHTER:
     def Attack(self): #Chay khi active=1
         direct=di[self.idi]
         if self.idi==0:
-            if direct*self.x<direct*(self.targetX+60):
-                self.x+=3*direct
+            if direct*self.x<direct*(self.targetX+40):
+                self.x+=15*direct
         if self.idi==1:
-            if direct*self.x<direct*(self.targetX-60):
-                self.x+=3*direct
+            if direct*self.x<direct*(self.targetX-40):
+                self.x+=15*direct
         
-        self.curAttSprite+=0.021
-        self.cnt+=0.021
+        self.curAttSprite+=0.2
+        self.cnt+=0.2
         if self.cnt<5:
+            draw(shadow,self.x*1.01,self.y+self.height*0.85)
             draw(self.AttackSprite[self.idi][int(self.curAttSprite)],self.x,self.y)
         else:
             self.active=0
+    def rePosition(self):
+        global bgX
+        if bgX>=-3 or bgX+bg.get_width()<maxW+3 :
+            return
+        if self.x>455 :
+            self.x-=0.6
+            bgX-=0.5
+        if self.x<345:
+            self.x+=0.6
+            bgX+=0.5
     def die(self):
-        self.curDeath+=0.01
+        self.curDeath+=0.1
         # if self.curDeath<len(self.death):
+        draw(resize(shadow,self.death[min(11,int(self.curDeath))].get_width(),shadow.get_height()),self.x*1.01,self.y+self.height*0.85)
         draw(self.death[min(11,int(self.curDeath))],self.x,self.y-self.death[min(11,int(self.curDeath))].get_height()+self.height)
         # else :
         #     draw(self.death[11],self.x,self.y+self.death[11].get_height()+self.height)
+        if self.curDeath>20:
+            draw(gameover,(maxW-gameover.get_width())/2,(maxH-gameover.get_height())/2)
 
 #INITIALIZE
 fighter=FIGHTER()
@@ -159,7 +195,7 @@ for i in range(2):
         if i==0:
             img=pygame.transform.flip(img,True,False)
         fighter.AttackSprite[i].append(img)
-fighter.rangeImg=pygame.image.load("img/rect.png")
+fighter.rangeImg=pygame.image.load("img/rect2.png")
 enemy=[]
 
 ### INIT game
@@ -167,41 +203,48 @@ running =True
 clock=pygame.time.Clock()
 pivotTime=0
 end=0
-duration=random.uniform(500,1000)
-print(type(fighter))
+duration=random.uniform(500,900)
+fps = 120
+
 while running:
+    clock.tick(fps)
     curTime=pygame.time.get_ticks()
-    draw(bg,0,0)
+    fighter.rePosition()
+    draw(bg,bgX,0)
+    #
     draw(wood,0,0)
     for i in range(fighter.health):
-        draw(heart,(i+1)*36,10)
+        draw(heart,(i)*36+10,10)
+    scoreDisplay=fontscore.render(f"Blocked: {score}",True,(230,230,190))
+    draw (scoreDisplay,10,50)
     if fighter.health==0:
         fighter.die()
-        
+     ##   
     for event in pygame.event.get():
         if  event.type == pygame.QUIT:
             running=False
         if event.type == pygame.KEYDOWN and end ==0:
-            if event.key==pygame.K_LEFT and fighter.active==0:
+            if event.key==pygame.K_LEFT :
                 # fighter.setAttack(0,fighter.x)
                 maxx=0
                 ko=None
                 for e in enemy: 
-                    if fighter.x-e.x<=fighter.curAttRange:
+                    if fighter.x-e.x<=fighter.curAttRange and fighter.x>=e.x:
                         maxx=max(e.x,maxx)
                         ko=e
                 fighter.setAttack(0,maxx)
                 if ko!=None :
                     for e in enemy:
                         if e==ko:
+                            score+=1
                             e.kickedd()
                             break
                 
-            if event.key==pygame.K_RIGHT and fighter.active==0:
+            if event.key==pygame.K_RIGHT :
                 minn=1300
                 ko=None
                 for e in enemy: 
-                    if e.x-fighter.x<=fighter.curAttRange:
+                    if e.x>=fighter.x and e.x-fighter.x<=fighter.curAttRange:
                         minn=min(minn,e.x)
                         ko=e
                 if minn==1300:
@@ -211,6 +254,7 @@ while running:
                 if ko!=None :
                     for e in enemy:
                         if e==ko:
+                            score+=1
                             e.kickedd()
                             break
                        
@@ -229,13 +273,14 @@ while running:
         e.run()
         if e.x<-40 or e.x>maxW+10:
             enemy.remove(e)
-        if distance(e.x,e.y,fighter.x,fighter.y)<45:
+        if distance(e.x,fighter.y,fighter.x,fighter.y)<20:
             enemy.remove(e)
+            hitted.play()
             fighter.health-=1
             if fighter.health==0:
                 end=1
     if curTime-pivotTime>=duration:
-        duration=duration=duration=random.uniform(500,1000)
+        duration=duration=duration=random.uniform(500,700)
 
         pivotTime=curTime
         enemy.append(newEnemy())
