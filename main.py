@@ -116,7 +116,7 @@ class FIGHTER:
             self.targetX=x 
         else :
             self.targetX=self.x
-        self.curAttRange=0
+        self.curAttRange=20
         self.cnt=0
     def Attack(self): #Chay khi active=1
         direct=di[self.idi]
@@ -280,7 +280,7 @@ while running:
             if fighter.health==0:
                 end=1
     if curTime-pivotTime>=duration:
-        duration=duration=duration=random.uniform(500,700)
+        duration=duration=duration=random.uniform(300,700)
 
         pivotTime=curTime
         enemy.append(newEnemy())
